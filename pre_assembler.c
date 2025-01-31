@@ -1,4 +1,5 @@
 #include "assembler_definitions.h"
+#include "error_handler.h"
 #include "pre_and_passages.h"
 #include "Utility.h"
 
@@ -100,15 +101,18 @@ void expand_macro(Macro_List *macro, char *line, FILE *fptr_as)
 
 void pre_assembler(Assembler_Table **table_head, char *file_name)
 {
-    char *file_with_as = file_name, *file_with_am;
+    char *file_with_as, *file_with_am;
     char line[MAX_LINE_LENGTH];
     char macro_name[MAX_LINE_LENGTH];
     FILE *fptr_as, *fptr_am;
-    int line_type;
-    int flag = TRUE;
+    int line_type, line_count, temp_count;
+    char *rest_of_line;
+    int flag = TRUE, result;
 
     Macro *macro_head = NULL;
     Macro_List *list_head = NULL;
+
+    line_count = 1;
 
     memset(line, '\0', sizeof(line));
     memset(macro_name, '\0', sizeof(macro_name));
@@ -140,14 +144,25 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
         switch(line_type)
         {
             case MACRO_DECLARATION:
-                strcpy(macro_name , clean_line(line) + strlen("mcro"));
+                result = sscanf(line + strlen("mcro"), "%s", macro_name);
+                if(result == 1)
+                {
+                    result = check_macro_line(clean_line(line), line_count, macro_name);
+                    flag = flag && result == no_error;
+                }
+                result = check_macro_name_for_instruction(clean_line(line), line_count) &&
+                    check_macro_name_for_register(clean_line(line), line_count);
+                flag = flag && result == no_error;
+                temp_count = line_count;
                 memset(line, '\0', sizeof(line));
                 while(fgets(line, sizeof(line), fptr_as) != NULL)
                 {
+                    temp_count++;
                     line_type = type_line(line, (*table_head)->macro_head);
                     if(line_type == MACRO_END)
                     {
-                        /* Check for errors */
+                        result = check_macro_line(line, temp_count, macro_name);
+                        flag =  flag && result == no_error;
                         break;
                     }
                     if(flag == TRUE)
@@ -185,6 +200,7 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
 
         memset(line, '\0', sizeof(line));
         memset(macro_name, '\0', sizeof(macro_name));
+        line_count++;
     }
 
     free(file_with_as);
