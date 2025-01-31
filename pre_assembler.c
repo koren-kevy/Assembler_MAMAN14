@@ -1,29 +1,67 @@
 #include "assembler_definitions.h"
+#include "pre_and_passages.h"
 #include "Utility.h"
 
-void add_macro(Macro_List **list, char *macro_name)
+void add_macro(Macro_List **list, char *macro_name, Macro *macro_head)
 {
+    /*
+    Macro_List *node = NULL;
     Macro_List *new_macro = my_malloc(sizeof(Macro_List));
+    memset(new_macro->macro_name, '\0', MAX_LINE_LENGTH);
     strcpy(new_macro->macro_name, macro_name);
-    new_macro->head = NULL;
+    new_macro->head = macro_head;
+    new_macro->next = NULL;
+
+    if(*list == NULL)
+    {
+        *list = new_macro;
+        return;
+    }
+
+    node = *list;
+    while(node->next != NULL) { node = node->next; }
+    node->next = new_macro; */
+
+    Macro_List *new_macro = my_malloc(sizeof(Macro_List));
+
+    memset(new_macro->macro_name, '\0', MAX_LINE_LENGTH);
+    strcpy(new_macro->macro_name, macro_name);
+
+    new_macro->head = macro_head;
+
     new_macro->next = *list;
     *list = new_macro;
 }
 
-void add_macro_line(Macro_List *macro, char *line)
+void add_macro_line(Macro **macro_head, char *line)
 {
+    Macro *ptr = NULL;
     Macro *new_line = my_malloc(sizeof(Macro));
+
+    memset(new_line->line, '\0', sizeof(new_line->line));
     strcpy(new_line->line, line);
-    new_line->next = macro->head;
-    macro->head = new_line;
+    new_line->next = NULL;
+
+    if(*macro_head == NULL)
+    {
+        *macro_head = new_line;
+        return;
+    }
+
+    ptr = *macro_head;
+    while(ptr->next != NULL) { ptr = ptr->next; }
+    ptr->next = new_line;
 }
+
 
 Macro_List *find_macro(Macro_List *list, char *macro_name)
 {
-    while(list)
+    while(list != NULL)
     {
         if(strcmp(list->macro_name, macro_name) == 0)
+        {
             return list;
+        }
         list = list->next;
     }
     return NULL;
@@ -32,16 +70,37 @@ Macro_List *find_macro(Macro_List *list, char *macro_name)
 int type_line(char *line, Macro_List *list)
 {
     char *cleaned_line = clean_line(line);
-    if(strncmp(line, "mcro", strlen("mcro")) == 0) { return MACRO_DECLARATION; }
     if(strncmp(line, "mcroend", strlen("mcroend")) == 0) { return MACRO_END; }
+    if(strncmp(line, "mcro", strlen("mcro")) == 0) { return MACRO_DECLARATION; }
     if(line[0] == '\0' || line[0] == '\n') { return EMPTY; }
     if(find_macro(list, cleaned_line) != NULL) { return SEEN_MACRO; }
     return NO_MACRO;
 }
 
+/*
+void expand_macro(Macro_List *macro, char *line, FILE *fptr_as)
+{
+    Macro_List *current = macro;
+    while (current != NULL)
+    {
+        if (strcmp(line, current->macro_name) == 0)
+            {
+            Macro *macro_line = current->head;
+            while (macro_line != NULL)
+            {
+                fprintf(fptr_as, "%s\n", macro_line->line);
+                macro_line = macro_line->next;
+            }
+            return;
+        }
+        current = current->next;
+    }
+}
+*/
+
 void pre_assembler(Assembler_Table **table_head, char *file_name)
 {
-    char *file_with_as, *file_with_am;
+    char *file_with_as = file_name, *file_with_am;
     char line[MAX_LINE_LENGTH];
     char macro_name[MAX_LINE_LENGTH];
     FILE *fptr_as, *fptr_am;
@@ -59,17 +118,18 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
     file_with_as = edit_file_name(file_name, ".as");
     file_with_am = edit_file_name(file_name, ".am");
 
+
     fptr_as = fopen(file_with_as, "r");
     if(fptr_as == NULL)
     {
-        printf(" "); /* error */
+        printf("Error opening file %s \n", file_with_as); /* error */
         return;
     }
 
     fptr_am = fopen(file_with_am, "w");
-    if(file_with_am == NULL)
+    if(fptr_am == NULL)
     {
-        printf(" "); /* error */
+        printf("Error opening file %s \n", file_with_am); /* error */
         return;
     }
 
@@ -80,10 +140,11 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
         switch(line_type)
         {
             case MACRO_DECLARATION:
+                strcpy(macro_name , clean_line(line) + strlen("mcro"));
                 memset(line, '\0', sizeof(line));
-                while(fgets(line, sizeof(line), fptr_as) != NULL && line_type != MACRO_END)
+                while(fgets(line, sizeof(line), fptr_as) != NULL)
                 {
-                    line_type = type_line(line, ((*table_head)->macro_head));
+                    line_type = type_line(line, (*table_head)->macro_head);
                     if(line_type == MACRO_END)
                     {
                         /* Check for errors */
@@ -91,13 +152,13 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
                     }
                     if(flag == TRUE)
                     {
-                        add_macro_line(&macro_head, clean_line(line));
+                        add_macro_line(&macro_head, line);
                     }
                     memset(line, '\0', sizeof(line));
                 }
                     if(flag == TRUE)
                     {
-                        add_macro(&(*table_head)->macro_head, macro_name);
+                        add_macro(&(*table_head)->macro_head, macro_name, macro_head);
                     }
                 break;
 
@@ -118,7 +179,7 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
                 break;
 
             case NO_MACRO:
-                fprintf(fptr_am, "%s", clean_line(line));
+                fprintf(fptr_am, "%s", line);
                 break;
         }
 
