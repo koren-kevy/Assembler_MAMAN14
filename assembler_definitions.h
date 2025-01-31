@@ -14,6 +14,7 @@
 #define MAX_LABEL_SIZE 32 /* Max label size is 31, we add 1 for ':' */
 
 extern const char *instruction_names[];
+extern const char *register_names[];
 
 typedef enum
 {
