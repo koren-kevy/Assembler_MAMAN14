@@ -13,8 +13,10 @@
 const char *instruction_names[] = {"mov", "cmp", "add", "sub", "lea", "clr",
 "not", "inc", "dec", "jmp", "bne", "jst", "red", "prn", "rts", "stop"};
 
+const char *register_names[] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"};
+
 /* This function already gets a line of a macro definition. */
-int check_macro_name(char *line)
+int check_macro_name_for_instruction(char *line)
 {
     int i = 0;
     char *new_line = clean_line(line);
@@ -29,6 +31,22 @@ int check_macro_name(char *line)
     return no_error;
 }
 
+int check_macro_name_for_register(char *line)
+{
+    int i = 0;
+    char *new_line = clean_line(line);
+    new_line += 4;
+    for(; i < strlen(new_line); i++)
+    {
+        if(strcmp(register_names[i], new_line) == 0)
+        {
+            return error;
+        }
+    }
+    return no_error;
+}
+
+
 /* Checks if in the macro start and end there is no more characters.
  * This function already gets a line of macro definition or ending. */
 int check_macro_line(char *line)
@@ -42,14 +60,19 @@ int check_macro_line(char *line)
 
 int check_for_errors(char *line)
 {
-    if(check_macro_name(line) == error)
+    if(check_macro_name_for_instruction(line) == error)
     {
-        printf("\n"); /* error message */
+        printf("Macro name is an instruction command. \n");
+        return FALSE;
+    }
+    if(check_macro_name_for_register(line) == error)
+    {
+        printf("Macro name is a register name. \n");
         return FALSE;
     }
     if(check_macro_line(line) == error)
     {
-        printf("\n");
+        printf("In macro line are extra charecters. \n");
         return FALSE;
     }
 
