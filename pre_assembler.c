@@ -3,6 +3,18 @@
 #include "pre_and_passages.h"
 #include "Utility.h"
 
+void print_all_macros(Macro_List *head)
+{
+    Macro_List *curr = head;
+    printf("\n--- Defined Macros ---\n");
+    while (curr != NULL)
+    {
+        printf("Macro name: %s\n", curr->macro_name);
+        curr = curr->next;
+    }
+    printf("--- End of Macros ---\n");
+}
+
 void add_macro(Macro_List **list, char *macro_name, Macro *macro_head)
 {
     /*
@@ -61,6 +73,7 @@ Macro_List *find_macro(Macro_List *list, char *macro_name)
     {
         if(strcmp(list->macro_name, macro_name) == 0)
         {
+            printf("We found macro \n");
             return list;
         }
         list = list->next;
@@ -106,7 +119,6 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
     char macro_name[MAX_LINE_LENGTH];
     FILE *fptr_as, *fptr_am;
     int line_type, line_count, temp_count;
-    char *rest_of_line;
     int flag = TRUE, result;
 
     Macro *macro_head = NULL;
@@ -140,7 +152,6 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
     while(fgets(line, sizeof(line), fptr_as) != NULL)
     {
         line_type = type_line(line, (*table_head)->macro_head);
-
         switch(line_type)
         {
             case MACRO_DECLARATION:
@@ -150,8 +161,8 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
                     result = check_macro_line(clean_line(line), line_count, macro_name);
                     flag = flag && result == no_error;
                 }
-                result = check_macro_name_for_instruction(clean_line(line), line_count) &&
-                    check_macro_name_for_register(clean_line(line), line_count);
+                result = check_macro_name_for_instruction(macro_name, line_count) &&
+                    check_macro_name_for_register(macro_name, line_count);
                 flag = flag && result == no_error;
                 temp_count = line_count;
                 memset(line, '\0', sizeof(line));
