@@ -37,6 +37,7 @@ void add_macro(Macro_List **list, char *macro_name, Macro *macro_head)
 
     Macro_List *new_macro = my_malloc(sizeof(Macro_List));
 
+    macro_name[strcspn(macro_name, "\n\r\t ")] = '\0';
     memset(new_macro->macro_name, '\0', MAX_LINE_LENGTH);
     strcpy(new_macro->macro_name, macro_name);
 
@@ -69,11 +70,11 @@ void add_macro_line(Macro **macro_head, char *line)
 
 Macro_List *find_macro(Macro_List *list, char *macro_name)
 {
+    macro_name[strcspn(macro_name, "\n\r\t ")] = '\0';
     while(list != NULL)
     {
         if(strcmp(list->macro_name, macro_name) == 0)
         {
-            printf("We found macro \n");
             return list;
         }
         list = list->next;
@@ -84,10 +85,12 @@ Macro_List *find_macro(Macro_List *list, char *macro_name)
 int type_line(char *line, Macro_List *list)
 {
     char *cleaned_line = clean_line(line);
+    char *macro_name = strtok(cleaned_line, " \t\n");
+    cleaned_line[strcspn(cleaned_line, "\n\r\t ")] = '\0';
     if(strncmp(line, "mcroend", strlen("mcroend")) == 0) { return MACRO_END; }
     if(strncmp(line, "mcro", strlen("mcro")) == 0) { return MACRO_DECLARATION; }
     if(line[0] == '\0' || line[0] == '\n') { return EMPTY; }
-    if(find_macro(list, cleaned_line) != NULL) { return SEEN_MACRO; }
+    if(macro_name != NULL && find_macro(list, cleaned_line) != NULL) { return SEEN_MACRO; }
     return NO_MACRO;
 }
 
