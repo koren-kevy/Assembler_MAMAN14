@@ -16,14 +16,12 @@ const char *instruction_names[] = {"mov", "cmp", "add", "sub", "lea", "clr",
 const char *register_names[] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"};
 
 /* This function already gets a line of a macro definition. */
-int check_macro_name_for_instruction(char *line, int count)
+int check_macro_name_for_instruction(char *macro_name, int count)
 {
     int i = 0;
-    char *new_line = clean_line(line);
-    new_line += 4; /* To skip on the word "mcro" */
-    for(; i < strlen(new_line); i++)
+    for(; i < sizeof(instruction_names) / sizeof(instruction_names[0]); i++)
     {
-        if(strcmp(instruction_names[i], new_line) == 0)
+        if(strcmp(instruction_names[i], macro_name) == 0)
         {
             printf("Macro name is an instruction command in line %d. \n", count);
             return error;
@@ -32,14 +30,12 @@ int check_macro_name_for_instruction(char *line, int count)
     return no_error;
 }
 
-int check_macro_name_for_register(char *line, int count)
+int check_macro_name_for_register(char *macro_name, int count)
 {
     int i = 0;
-    char *new_line = clean_line(line);
-    new_line += 4;
-    for(; i < strlen(new_line); i++)
+    for(; i < sizeof(register_names) / sizeof(register_names[0]); i++)
     {
-        if(strcmp(register_names[i], new_line) == 0)
+        if(strcmp(register_names[i], macro_name) == 0)
         {
             printf("Macro name is a register name in line %d. \n", count);
             return error;
@@ -66,18 +62,20 @@ int check_macro_line(char *line, int count, char *macro_name)
             }
         }
     }
-
-    rest_of_line = line + strlen("mcro") + strlen(macro_name);
-
-    while(*rest_of_line == ' ' || *rest_of_line == '\t')
+    else
     {
-        rest_of_line++;
-    }
+        rest_of_line = line + strlen("mcro") + strlen(macro_name);
 
-    if(*rest_of_line != '\0' && *rest_of_line != '\n')
-    {
-        printf("In macro declaration at line %d, there are extra characters.\n", count);
-        return error;
+        while(*rest_of_line == ' ' || *rest_of_line == '\t')
+        {
+            rest_of_line++;
+        }
+
+        if(*rest_of_line != '\0' && *rest_of_line != '\n')
+        {
+            printf("In macro declaration at line %d, there are extra characters.\n", count);
+            return error;
+        }
     }
     return no_error;
 }
