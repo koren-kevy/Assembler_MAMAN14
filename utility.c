@@ -1,6 +1,6 @@
 #include "assembler_definitions.h"
 
-void * my_malloc(long size)
+void* my_malloc(long size)
 {
     void *memory = malloc(size);
     if(memory == NULL)
