@@ -9,9 +9,9 @@
 #define TRUE 1
 #define FALSE 0
 
-#define MAX_LINE_LENGTH 81 /* Max line length is 80, we add 1 for '\n' */
+#define MAX_LINE_LENGTH 81 /* Max line length is 80, we add 1 for '\n'. */
 
-#define MAX_LABEL_SIZE 32 /* Max label size is 31, we add 1 for ':' */
+#define MAX_LABEL_SIZE 32 /* Max label size is 31, we add 1 for ':'. */
 
 extern const char *instruction_names[];
 extern const char *register_names[];
@@ -70,6 +70,12 @@ typedef enum
     SEEN_MACRO,
     NO_MACRO
 } Type_Line;
+
+typedef struct
+{
+    char *name;
+    int code;
+}Command;
 
 typedef struct
 {
@@ -147,7 +153,7 @@ typedef struct Assembler_Table
     Entry_List *entry_head;
     Extern_List *extern_head;
     Machine_Code_Command *command_head;
-    Machine_Code_Instructions instructions_head;
+    Machine_Code_Instructions *instructions_head;
 } Assembler_Table;
 
 #endif
