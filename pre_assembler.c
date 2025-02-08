@@ -3,38 +3,9 @@
 #include "pre_and_passages.h"
 #include "Utility.h"
 
-void print_all_macros(Macro_List *head)
-{
-    Macro_List *curr = head;
-    printf("\n--- Defined Macros ---\n");
-    while (curr != NULL)
-    {
-        printf("Macro name: %s\n", curr->macro_name);
-        curr = curr->next;
-    }
-    printf("--- End of Macros ---\n");
-}
 
 void add_macro(Macro_List **list, char *macro_name, Macro *macro_head)
 {
-    /*
-    Macro_List *node = NULL;
-    Macro_List *new_macro = my_malloc(sizeof(Macro_List));
-    memset(new_macro->macro_name, '\0', MAX_LINE_LENGTH);
-    strcpy(new_macro->macro_name, macro_name);
-    new_macro->head = macro_head;
-    new_macro->next = NULL;
-
-    if(*list == NULL)
-    {
-        *list = new_macro;
-        return;
-    }
-
-    node = *list;
-    while(node->next != NULL) { node = node->next; }
-    node->next = new_macro; */
-
     Macro_List *new_macro = my_malloc(sizeof(Macro_List));
 
     macro_name[strcspn(macro_name, "\n\r\t ")] = '\0';
@@ -82,6 +53,7 @@ Macro_List *find_macro(Macro_List *list, char *macro_name)
     return NULL;
 }
 
+
 int type_line(char *line, Macro_List *list)
 {
     char *cleaned_line = clean_line(line);
@@ -94,26 +66,6 @@ int type_line(char *line, Macro_List *list)
     return NO_MACRO;
 }
 
-/*
-void expand_macro(Macro_List *macro, char *line, FILE *fptr_as)
-{
-    Macro_List *current = macro;
-    while (current != NULL)
-    {
-        if (strcmp(line, current->macro_name) == 0)
-            {
-            Macro *macro_line = current->head;
-            while (macro_line != NULL)
-            {
-                fprintf(fptr_as, "%s\n", macro_line->line);
-                macro_line = macro_line->next;
-            }
-            return;
-        }
-        current = current->next;
-    }
-}
-*/
 
 void pre_assembler(Assembler_Table **table_head, char *file_name)
 {
@@ -154,16 +106,13 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
 
     while(fgets(line, sizeof(line), fptr_as) != NULL)
     {
-        line_type = type_line(line, (*table_head)->macro_head);
+        line_type = type_line(clean_line(line), (*table_head)->macro_head);
         switch(line_type)
         {
             case MACRO_DECLARATION:
-                result = sscanf(line + strlen("mcro"), "%s", macro_name);
-                if(result == 1)
-                {
-                    result = check_macro_line(clean_line(line), line_count, macro_name);
-                    flag = flag && result == no_error;
-                }
+                strcpy(macro_name, clean_line(line) + strlen("mcro"));
+                result = check_macro_line(line, line_count, macro_name);
+                flag = flag && result == no_error;
                 result = check_macro_name_for_instruction(macro_name, line_count) &&
                     check_macro_name_for_register(macro_name, line_count);
                 flag = flag && result == no_error;
