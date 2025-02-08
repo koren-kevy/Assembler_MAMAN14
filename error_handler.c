@@ -51,6 +51,8 @@ int check_macro_line(char *line, int count, char *macro_name)
 {
     int i;
     char *rest_of_line;
+    while(*line == ' ' || *line == '\t')
+        line++;
     if(strncmp(line, "mcroend", strlen("mcroend")) == 0)
     {
         for(i = strlen("mcroend"); line[i] != '\0' && line[i] != '\n'; i++)
@@ -64,12 +66,14 @@ int check_macro_line(char *line, int count, char *macro_name)
     }
     else
     {
-        rest_of_line = line + strlen("mcro") + strlen(macro_name);
+        line += strlen("mcro");
+        while (*line == ' ' || *line == '\t')
+            line++;
+
+        rest_of_line = line + strlen(macro_name);
 
         while(*rest_of_line == ' ' || *rest_of_line == '\t')
-        {
             rest_of_line++;
-        }
 
         if(*rest_of_line != '\0' && *rest_of_line != '\n')
         {
