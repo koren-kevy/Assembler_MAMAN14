@@ -1,0 +1,39 @@
+#include "assembler_definitions.h"
+#include "error_handler.h"
+#include "Utility.h"
+
+void add_label(Label_List **list, char *label_name, int address)
+{
+    Label_List *new_label = my_malloc(sizeof(Label_List));
+
+    label_name[strcspn(label_name, "\n\r\t ")] = 0;
+    memset(new_label->label, '\0', MAX_LABEL_SIZE);
+    strcpy(new_label->label, label_name);
+
+    new_label->address = address;
+    new_label->next = *list;
+    *list = new_label;
+}
+
+
+char *get_lable(char *line, int line_count)
+{
+    char *colon_ptr;
+    char *label_name;
+    int label_length;
+
+    colon_ptr = strchr(line, ':');
+    if(colon_ptr == NULL)
+    {
+        printf("No colon found in label definition at line %d \n", line_count);
+        return NULL;
+    }
+
+    label_length = (int)(colon_ptr - line);
+
+    label_name = my_malloc(label_length + 1);
+    strncpy(label_name, line, label_length);
+    label_name[label_length] = '\0';
+
+    return label_name;
+}
