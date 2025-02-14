@@ -9,17 +9,16 @@
  * build a function that check if we got any error.
  */
 
-
-const char *instruction_names[] = {"mov", "cmp", "add", "sub", "lea", "clr",
+char *instruction_names[] = {"mov", "cmp", "add", "sub", "lea", "clr",
 "not", "inc", "dec", "jmp", "bne", "jst", "red", "prn", "rts", "stop"};
 
-const char *register_names[] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"};
+char *register_names[] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"};
 
 /* This function already gets a line of a macro definition. */
 int check_macro_name_for_instruction(char *macro_name, int count)
 {
     int i = 0;
-    for(; i < sizeof(instruction_names) / sizeof(instruction_names[0]); i++)
+    for(; i < TOTAL_INSTRUCTIONS; i++)
     {
         if(strcmp(instruction_names[i], macro_name) == 0)
         {
@@ -33,7 +32,7 @@ int check_macro_name_for_instruction(char *macro_name, int count)
 int check_macro_name_for_register(char *macro_name, int count)
 {
     int i = 0;
-    for(; i < sizeof(register_names) / sizeof(register_names[0]); i++)
+    for(; i < TOTAL_REGISTERS; i++)
     {
         if(strcmp(register_names[i], macro_name) == 0)
         {
