@@ -13,8 +13,11 @@
 
 #define MAX_LABEL_SIZE 32 /* Max label size is 31, we add 1 for ':'. */
 
-extern const char *instruction_names[];
-extern const char *register_names[];
+#define TOTAL_INSTRUCTIONS 16
+#define TOTAL_REGISTERS 8
+
+extern char *instruction_names[];
+extern char *register_names[];
 
 typedef enum
 {
@@ -62,20 +65,11 @@ typedef enum
     r7 = 7
 } Register;
 
-typedef enum
-{
-    MACRO_DECLARATION,
-    MACRO_END,
-    EMPTY,
-    SEEN_MACRO,
-    NO_MACRO
-} Type_Line;
-
 typedef struct
 {
     char *name;
     int code;
-}Command;
+} Command;
 
 typedef struct
 {
@@ -87,7 +81,7 @@ typedef struct
 
 typedef struct Word
 {
-    unsigned short word; /* Binary code for a word */
+    unsigned int word : 24; /* Binary code for a word */
 } Word;
 
 typedef struct Macro
