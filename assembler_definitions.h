@@ -16,6 +16,15 @@
 #define TOTAL_INSTRUCTIONS 16
 #define TOTAL_REGISTERS 8
 
+#define MASK_24BITS 0xFFFFFF
+
+#define BITS_TO_MOVE_FOR_OPCODE 18
+#define BITS_TO_MOVE_FOR_SOURCE_TYPE 16
+#define BITS_TO_MOVE_FOR_DEST_TYPE 11
+#define BITS_TO_MOVE_FOR_SOURCE_REGISTER 13
+#define BITS_TO_MOVE_FOR_DEST_REGISTER 8
+#define BITS_TO_MOVE_FOR_FUNCT 3
+
 extern char *instruction_names[];
 extern char *register_names[];
 
@@ -24,15 +33,15 @@ typedef enum
     mov = 0,
     cmp = 1,
     add = 2,
-    sub = 2,
+    sub = 3,
     lea = 4,
     clr = 5,
-    not = 5,
-    inc = 5,
-    dec = 5,
+    not = 6,
+    inc = 7,
+    dec = 8,
     jmp = 9,
-    bne = 9,
-    jsr = 9,
+    bne = 10,
+    jsr = 11,
     red = 12,
     prn = 13,
     rts = 14,
@@ -65,10 +74,19 @@ typedef enum
     r7 = 7
 } Register;
 
+typedef enum
+{
+    NO_TYPE,
+    REGISTER,
+    IMMEDIATE,
+    LABEL
+} Operand_type;
+
 typedef struct
 {
     char *name;
     int code;
+    Funct funct;
 } Command;
 
 typedef struct
@@ -81,7 +99,7 @@ typedef struct
 
 typedef struct Word
 {
-    unsigned int word : 24; /* Binary code for a word */
+    unsigned int word; /* Binary code for a word, we will use only 24 bits */
 } Word;
 
 typedef struct Macro
