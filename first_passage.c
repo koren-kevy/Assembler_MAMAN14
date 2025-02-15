@@ -20,16 +20,14 @@ void add_label(Label_List **list, char *label_name, int address)
 void add_entry(Entry_List **list, char *line, int line_count)
 {
     Entry_List *new_entry = my_malloc(sizeof(Entry_List));
-    char *entry;
+    char entry[MAX_LABEL_SIZE];
 
-    entry = get_label(line, '\n',line_count);
-    if(entry == NULL)
+    get_label(line, entry, '\n', line_count);
+    if(entry[0] == '\0')
         return;
 
     memset(new_entry->label, '\0', MAX_LABEL_SIZE);
     strcpy(new_entry->label, entry);
-
-    free(entry);
 
     new_entry->next = *list;
     *list = new_entry;
@@ -40,16 +38,14 @@ void add_entry(Entry_List **list, char *line, int line_count)
 void add_extern(Extern_List **list, char *line, int line_count)
 {
     Extern_List *new_extern = my_malloc(sizeof(Extern_List));
-    char *exter;
+    char exter[MAX_LABEL_SIZE];
 
-    exter = get_label(line, '\n',line_count);
-    if(exter == NULL)
+    get_label(line, exter, '\n', line_count);
+    if(exter[0] == '\0')
         return;
 
     memset(new_extern->label, '\0', MAX_LABEL_SIZE);
     strcpy(new_extern->label, exter);
-
-    free(exter);
 
     new_extern->next = *list;
     *list = new_extern;
@@ -57,26 +53,148 @@ void add_extern(Extern_List **list, char *line, int line_count)
 }
 
 
-char *get_label(char *line, char co ,int line_count)
+void add_instruction(Machine_Code_Instructions **list, int address, Word word)
+{
+    Machine_Code_Instructions *new_instruction = my_malloc(sizeof(Machine_Code_Instructions));
+
+    new_instruction->word = word;
+    new_instruction->add = address;
+    new_instruction->next = *list;
+
+    *list = new_instruction;
+}
+
+
+void add_command(Machine_Code_Command **list, int address, Word word, char label[MAX_LABEL_SIZE],
+    int type)
+{
+    Machine_Code_Command *new_command = my_malloc(sizeof(Machine_Code_Command));
+
+    memset(new_command->label, '\0', MAX_LABEL_SIZE);
+    strcpy(new_command->label, label);
+
+    new_command->add = address;
+    new_command->binary_code = word;
+    new_command->type = type;
+
+    new_command->next = *list;
+    *list = new_command;
+}
+
+
+void get_label(char *line, char *label, char co ,int line_count)
 {
     char *colon_ptr;
-    char *label_name;
     int label_length;
 
     colon_ptr = strchr(line, co);
     if(colon_ptr == NULL)
     {
         printf("No colon found in label definition at line %d \n", line_count);
-        return NULL;
+        return;
     }
 
     label_length = (int)(colon_ptr - line);
 
-    label_name = my_malloc(label_length + 1);
-    strncpy(label_name, line, label_length);
-    label_name[label_length] = '\0';
+    strncpy(label, line, label_length);
+    label[label_length] = '\0';
+}
 
-    return label_name;
+
+int get_string(Machine_Code_Instructions **list, char *line, int skip, int *address)
+{
+    int i;
+    Word word;
+    line += skip;
+
+    if(line[0] != '"')
+        return error;
+
+    for(i = 1; line[i] != '"' && line[i] != '\0'; i++)
+    {
+        word.word = line[i];
+        add_instruction(list, *address, word);
+        (*address)++;
+    }
+    word.word = 0;
+    add_instruction(list, *address, word);
+    (*address)++;
+
+    return no_error;
+}
+
+
+void get_data(Machine_Code_Instructions **list, char *line, int skip, int *address)
+{
+    char *num;
+    int int_num;
+    Word word;
+    line += skip;
+
+    num = strtok(line, ",\n");
+
+    while(num != NULL)
+    {
+        int_num = atoi(num);
+        if(int_num == 0 && num[0] == '0')
+            return;
+        word.word = int_num;
+        add_instruction(list, *address, word);
+        (*address)++;
+
+        num = strtok(NULL, ",\n");
+    }
+}
+
+
+int get_operand_type(char *operand)
+{
+    int i = 0;
+
+    for(; i < TOTAL_REGISTERS; i++)
+    {
+        if(strcmp(operand, register_names[i]) == 0)
+        {
+            return REGISTER;
+        }
+    }
+
+    if(operand[0] == '#')
+    {
+        return IMMEDIATE;
+    }
+
+    if(isalpha(operand[0]))
+    {
+        return LABEL;
+    }
+
+    return NO_TYPE;
+}
+
+
+int get_operand_value(int type, char *operand)
+{
+    int value = 0;
+
+    switch(type)
+    {
+        case REGISTER:
+            if(operand[0] == 'r' && operand[1] >= '0' && operand[1] <= '7')
+            {
+                value = operand[1] - '0';
+            }
+            break;
+
+        case IMMEDIATE:
+            value = atoi(operand + 1);
+            break;
+
+        case LABEL:
+            value = 0;
+            break;
+    }
+    return value;
 }
 
 
@@ -128,4 +246,126 @@ Label_List *find_label(Label_List *list, char *label_name)
         list = list->next;
     }
     return NULL;
+}
+
+
+void make_word_for_one_operand_command(Command *command, Machine_Code_Command **list, int *ic,
+    char *dest, int dest_type)
+{
+    Word word;
+    word.word = 0;
+
+    word.word |= command->code << BITS_TO_MOVE_FOR_OPCODE;
+
+    word.word |= dest_type << BITS_TO_MOVE_FOR_DEST_TYPE;
+
+    if(dest_type == REGISTER)
+    {
+        word.word |= get_operand_value(dest_type, dest) << BITS_TO_MOVE_FOR_DEST_REGISTER;
+    }
+
+    add_command(list, *ic, word, dest, dest_type);
+    (*ic)++;
+
+    if(dest_type == REGISTER)
+    {
+        word.word |= get_operand_value(dest_type, dest) << BITS_TO_MOVE_FOR_DEST_REGISTER;
+    }
+
+    add_command(list, *ic, word, dest, dest_type);
+    (*ic)++;
+}
+
+
+void make_word_for_two_operand_command(Command *command, Machine_Code_Command **list, int *ic,
+    char *source, int source_type, char *dest, int dest_type)
+{
+    Word word;
+    word.word = 0;
+
+    word.word |= command->code << BITS_TO_MOVE_FOR_OPCODE;
+
+    word.word |= source_type << BITS_TO_MOVE_FOR_SOURCE_TYPE;
+    word.word |= dest_type << BITS_TO_MOVE_FOR_DEST_TYPE;
+
+    if(source_type == REGISTER)
+    {
+        word.word |= get_operand_value(source_type, source) << BITS_TO_MOVE_FOR_SOURCE_REGISTER;
+    }
+
+    if(dest_type == REGISTER)
+    {
+        word.word |= get_operand_value(dest_type, dest) << BITS_TO_MOVE_FOR_DEST_REGISTER;
+    }
+
+    word.word |= command->funct << BITS_TO_MOVE_FOR_FUNCT;
+
+    add_command(list, *ic, word, source, source_type);
+    (*ic)++;
+
+    if(source_type == REGISTER)
+    {
+        word.word |= get_operand_value(source_type, source) << BITS_TO_MOVE_FOR_SOURCE_REGISTER;
+    }
+
+    add_command(list, *ic, word, source, source_type);
+    (*ic)++;
+
+    if(dest_type == REGISTER)
+    {
+        word.word |= get_operand_value(dest_type, dest) << BITS_TO_MOVE_FOR_DEST_REGISTER;
+    }
+
+    add_command(list, *ic, word, dest, dest_type);
+    (*ic)++;
+}
+
+int make_command(Machine_Code_Command **list, char *line, Command *command, int *ic, int count)
+{
+    int source_type = NO_TYPE, dest_type = NO_TYPE;
+    char source[MAX_LABEL_SIZE], dest[MAX_LABEL_SIZE];
+
+    memset(source, '\0', MAX_LABEL_SIZE);
+    memset(dest, '\0', MAX_LABEL_SIZE);
+
+    switch(command->code)
+    {
+        case mov:
+        case cmp:
+        case add:
+        case sub:
+        case lea:
+            get_label(line, source,',', count);
+            get_label(line + strlen(source) + strlen(","), dest, '\n', count);
+
+            source_type = get_operand_type(source);
+            dest_type = get_operand_type(dest);
+
+            make_word_for_two_operand_command(command, list, ic, source, source_type, dest, dest_type );
+            break;
+
+        case clr:
+        case not:
+        case inc:
+        case dec:
+        case jmp:
+        case bne:
+        case jsr:
+        case red:
+        case prn:
+            get_label(line, dest, '\n', count);
+            dest_type = get_operand_type(dest);
+
+            make_word_for_one_operand_command(command, list, ic, source, dest_type);
+            break;
+
+        case rts:
+        case stop:
+            make_word_for_one_operand_command(command, list, ic, NULL, NO_TYPE);
+            break;
+
+        default:
+            return FALSE;
+    }
+    return TRUE;
 }
