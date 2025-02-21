@@ -12,6 +12,8 @@
 char *instruction_names[] = {"mov", "cmp", "add", "sub", "lea", "clr",
 "not", "inc", "dec", "jmp", "bne", "jst", "red", "prn", "rts", "stop"};
 
+int instruction_functs[] = {0, 0, 1, 2, 0, 1, 2, 3, 4, 1, 2, 3, 0, 0, 0, 0};
+
 char *register_names[] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"};
 
 /* This function already gets a line of a macro definition. */
