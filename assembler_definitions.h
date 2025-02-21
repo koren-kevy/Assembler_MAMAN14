@@ -26,6 +26,7 @@
 #define BITS_TO_MOVE_FOR_FUNCT 3
 
 extern char *instruction_names[];
+extern int instruction_functs[];
 extern char *register_names[];
 
 typedef enum
@@ -86,7 +87,7 @@ typedef struct
 {
     char *name;
     int code;
-    Funct funct;
+    int funct;
 } Command;
 
 typedef struct
