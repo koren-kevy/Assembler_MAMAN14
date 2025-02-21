@@ -3,6 +3,7 @@
 #include "pre_and_passages.h"
 #include "Utility.h"
 
+
 void add_label(Label_List **list, char *label_name, int address)
 {
     Label_List *new_label = my_malloc(sizeof(Label_List));
@@ -112,7 +113,7 @@ int get_string(Machine_Code_Instructions **list, char *line, int skip, int *addr
 
     for(i = 1; line[i] != '"' && line[i] != '\0'; i++)
     {
-        word.word = line[i];
+        word.word = (unsigned)line[i];
         add_instruction(list, *address, word);
         (*address)++;
     }
@@ -198,7 +199,7 @@ int get_operand_value(int type, char *operand)
 }
 
 
-int type_line_first_pass(char *line, char **command, int *length)
+int type_line_first_pass(char *line, Command *command ,int *length)
 {
     int i = 0;
     if(strncmp(line, ".data", strlen(".data")) == 0)
@@ -226,8 +227,10 @@ int type_line_first_pass(char *line, char **command, int *length)
     {
         if(strncmp(line, instruction_names[i], strlen(instruction_names[i])) == 0)
         {
-            *length = strlen(instruction_names[i]);
-            *command = instruction_names[i];
+            *length = (int)strlen(instruction_names[i]);
+            command->name = instruction_names[i];
+            command->code = i;
+            command->funct = instruction_functs[i];
             return INSTRUCTION;
         }
     }
@@ -328,6 +331,7 @@ int make_command(Machine_Code_Command **list, char *line, Command *command, int 
     memset(source, '\0', MAX_LABEL_SIZE);
     memset(dest, '\0', MAX_LABEL_SIZE);
 
+
     switch(command->code)
     {
         case mov:
@@ -368,4 +372,114 @@ int make_command(Machine_Code_Command **list, char *line, Command *command, int 
             return FALSE;
     }
     return TRUE;
+}
+
+void first_passage(Assembler_Table **table_head, char *file_name)
+{
+    char line[MAX_LINE_LENGTH], label[MAX_LABEL_SIZE];
+    char *cleaned_line, *co_ptr;
+    int line_count = 1;
+    int ic = 100, dc = 0;
+    int line_type, length, is_label;
+    int flag = TRUE, is_error = no_error;
+    Command *command = my_malloc(sizeof(Command));
+
+    FILE *fptr = fopen(file_name, "r");
+    if(fptr == NULL)
+    {
+        printf("Error opening file %s \n", file_name); /* error */
+        return;
+    }
+
+    command->name = NULL;
+    command->code = 0;
+    command->funct = 0;
+
+    memset(line, '\0', MAX_LINE_LENGTH);
+    memset(label, '\0', MAX_LABEL_SIZE);
+
+    while(fgets(line, MAX_LINE_LENGTH, fptr) != NULL)
+    {
+        cleaned_line = clean_line(line);
+        is_label = FALSE;
+
+        co_ptr = strstr(cleaned_line, ":");
+        if(co_ptr)
+        {
+            get_label(line, label, ':', line_count);
+            is_label = TRUE;
+        }
+        line_type = type_line_first_pass(line + strlen(label), command, &length);
+
+        switch(line_type)
+        {
+            case DATA:
+                if(is_label)
+                {
+                    add_label(&(*table_head)->label_head, label, ic + dc - 1);
+                }
+                /* Check for errors in data. */
+                if(flag)
+                {
+                    get_data(&(*table_head)->instructions_head, line, strlen(label), &dc);
+                }
+                break;
+
+            case STRING:
+                if(is_label)
+                {
+                    add_label(&(*table_head)->label_head, label, ic + dc - 1);
+                }
+                if(flag)
+                {
+                    get_string(&(*table_head)->instructions_head, line, strlen(label), &dc);
+                }
+                break;
+
+            case ENTRY:
+                if(is_label)
+                {
+                    add_label(&(*table_head)->label_head, label, ic + dc);
+                }
+                if(flag)
+                {
+                    add_entry(&(*table_head)->entry_head, line + strlen(label), line_count);
+                }
+                break;
+
+            case EXTERN:
+                if(is_label)
+                {
+                    add_label(&(*table_head)->label_head, label, ic + dc);
+                }
+                if(flag)
+                {
+                    add_extern(&(*table_head)->extern_head, line + strlen(label), line_count);
+                }
+                break;
+
+            case INSTRUCTION:
+                if(is_label)
+                {
+                    add_label(&(*table_head)->label_head, label, ic);
+                }
+                if(flag)
+                {
+                    make_command(&(*table_head)->command_head, line + strlen(label), command,
+                        &ic, line_count);
+                }
+                break;
+
+            case NONE:
+                break;
+        }
+
+        line_count++;
+        flag = TRUE;
+        memset(line, '\0', MAX_LINE_LENGTH);
+        memset(label, '\0', MAX_LABEL_SIZE);
+    }
+    free(command);
+    fclose(fptr);
+    fptr = NULL;
 }
