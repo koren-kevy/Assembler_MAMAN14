@@ -67,9 +67,9 @@ int type_line(char *line, Macro_List *list)
 }
 
 
-void pre_assembler(Assembler_Table **table_head, char *file_name)
+void pre_assembler(Assembler_Table **table_head, char *file_name, char *file_with_as)
 {
-    char *file_with_as, *file_with_am;
+    char *file_with_am;
     char line[MAX_LINE_LENGTH];
     char macro_name[MAX_LINE_LENGTH];
     FILE *fptr_as, *fptr_am;
@@ -86,9 +86,7 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
 
     /* To check file name */
 
-    file_with_as = edit_file_name(file_name, ".as");
     file_with_am = edit_file_name(file_name, ".am");
-
 
     fptr_as = fopen(file_with_as, "r");
     if(fptr_as == NULL)
@@ -111,11 +109,15 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
         {
             case MACRO_DECLARATION:
                 strcpy(macro_name, clean_line(line) + strlen("mcro"));
+
+                result = check_space_and_colon(line, macro_name, line_count, PRE_PROC);
+                flag = flag && result == no_error;
                 result = check_macro_line(line, line_count, macro_name);
                 flag = flag && result == no_error;
-                result = check_macro_name_for_instruction(macro_name, line_count) &&
-                    check_macro_name_for_register(macro_name, line_count);
+                result = check_name_for_instruction(macro_name, line_count, PRE_PROC) &&
+                    check_name_for_register(macro_name, line_count, PRE_PROC);
                 flag = flag && result == no_error;
+
                 temp_count = line_count;
                 memset(line, '\0', sizeof(line));
                 while(fgets(line, sizeof(line), fptr_as) != NULL)
@@ -172,4 +174,9 @@ void pre_assembler(Assembler_Table **table_head, char *file_name)
 
     fclose(fptr_as);
     fclose(fptr_am);
+
+    if(flag)
+    {
+        first_passage(table_head, file_with_am);
+    }
 }
