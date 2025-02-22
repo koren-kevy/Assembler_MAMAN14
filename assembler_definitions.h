@@ -85,13 +85,6 @@ typedef enum
 
 typedef struct
 {
-    char *name;
-    int code;
-    int funct;
-} Command;
-
-typedef struct
-{
     unsigned int zero_flag : 1;
     unsigned int negetive_flag : 1;
     unsigned int carry_flag : 1;
@@ -108,6 +101,13 @@ typedef struct Macro
     char line[MAX_LINE_LENGTH]; /* Line of the macro */
     struct Macro *next; /*  A pointer to the next line */
 } Macro;
+
+typedef struct
+{
+    char *name;
+    int code;
+    int funct;
+} Command;
 
 typedef struct Macro_List
 {
