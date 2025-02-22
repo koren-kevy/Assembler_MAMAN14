@@ -3,6 +3,8 @@
 
 #include "assembler_definitions.h"
 
+#define PRE_PROC 100 /* A value to tell a function at which stage are we. */
+#define FIRST_PASS 101
 
 enum
 {
@@ -21,7 +23,7 @@ Macro_List *find_macro(Macro_List *list, char *macro_name);
 
 int type_line(char *line, Macro_List *list);
 
-void pre_assembler(Assembler_Table **table_head, char *file_name);
+void pre_assembler(Assembler_Table **table_head, char *file_name, char *file_with_as);
 
 
 enum
