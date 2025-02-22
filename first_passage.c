@@ -381,7 +381,7 @@ void first_passage(Assembler_Table **table_head, char *file_name)
     int line_count = 1;
     int ic = 100, dc = 0;
     int line_type, length, is_label;
-    int flag = TRUE, is_error = no_error;
+    int flag = TRUE, is_error = no_error, total_error = no_error;
     Command *command = my_malloc(sizeof(Command));
 
     FILE *fptr = fopen(file_name, "r");
@@ -407,9 +407,18 @@ void first_passage(Assembler_Table **table_head, char *file_name)
         if(co_ptr)
         {
             get_label(line, label, ':', line_count);
-            is_label = TRUE;
+            is_label = check_for_same_label((*table_head)->label_head, label, line_count);
+
+            is_error = check_space_and_colon(line, label, line_count, FIRST_PASS);
+            flag = flag && is_error == no_error;
+            is_error = check_label_name(label, line_count);
+            flag = flag && is_error == no_error;
+            is_error = check_name_for_instruction(label, line_count, FIRST_PASS);
+            flag = flag && is_error == no_error;
+            is_error = check_name_for_register(label, line_count, FIRST_PASS);
+            flag = flag && is_error == no_error;
         }
-        line_type = type_line_first_pass(line + strlen(label), command, &length);
+        line_type = type_line_first_pass(cleaned_line + strlen(label), command, &length);
 
         switch(line_type)
         {
@@ -418,10 +427,11 @@ void first_passage(Assembler_Table **table_head, char *file_name)
                 {
                     add_label(&(*table_head)->label_head, label, ic + dc - 1);
                 }
-                /* Check for errors in data. */
+                is_error = check_data_line(cleaned_line, line_count, label);
+                flag = flag && is_error == no_error;
                 if(flag)
                 {
-                    get_data(&(*table_head)->instructions_head, line, strlen(label), &dc);
+                    get_data(&(*table_head)->instructions_head, cleaned_line, length, &dc);
                 }
                 break;
 
@@ -432,7 +442,7 @@ void first_passage(Assembler_Table **table_head, char *file_name)
                 }
                 if(flag)
                 {
-                    get_string(&(*table_head)->instructions_head, line, strlen(label), &dc);
+                    get_string(&(*table_head)->instructions_head, cleaned_line, length, &dc);
                 }
                 break;
 
@@ -443,7 +453,7 @@ void first_passage(Assembler_Table **table_head, char *file_name)
                 }
                 if(flag)
                 {
-                    add_entry(&(*table_head)->entry_head, line + strlen(label), line_count);
+                    add_entry(&(*table_head)->entry_head, cleaned_line + length, line_count);
                 }
                 break;
 
@@ -454,7 +464,7 @@ void first_passage(Assembler_Table **table_head, char *file_name)
                 }
                 if(flag)
                 {
-                    add_extern(&(*table_head)->extern_head, line + strlen(label), line_count);
+                    add_extern(&(*table_head)->extern_head, cleaned_line + length, line_count);
                 }
                 break;
 
@@ -465,7 +475,7 @@ void first_passage(Assembler_Table **table_head, char *file_name)
                 }
                 if(flag)
                 {
-                    make_command(&(*table_head)->command_head, line + strlen(label), command,
+                    make_command(&(*table_head)->command_head, cleaned_line + length, command,
                         &ic, line_count);
                 }
                 break;
@@ -474,6 +484,7 @@ void first_passage(Assembler_Table **table_head, char *file_name)
                 break;
         }
 
+        total_error = total_error && flag == no_error;
         line_count++;
         flag = TRUE;
         memset(line, '\0', MAX_LINE_LENGTH);
@@ -482,4 +493,9 @@ void first_passage(Assembler_Table **table_head, char *file_name)
     free(command);
     fclose(fptr);
     fptr = NULL;
+
+    if(total_error)
+    {
+        /* second pass */
+    }
 }
