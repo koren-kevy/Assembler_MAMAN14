@@ -12,7 +12,7 @@ int check_name_for_register(char *name, int count, int stage);
 
 int check_macro_line(char *line, int count, char *macro_name);
 
-int check_label_name(char *name, int count);
+int check_legal_name(char *name, int count, int stage);
 
 int check_for_same_label(Label_List *list, char *name, int count);
 
