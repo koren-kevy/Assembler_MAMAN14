@@ -4,13 +4,77 @@
 #include "Utility.h"
 
 
-void add_label(Label_List **list, char *label_name, int address)
+void print_assembler(Assembler_Table *table_head)
+{
+    Label_List *label_list = table_head->label_head;
+    Entry_List *entry_list = table_head->entry_head;
+    Extern_List *extern_list = table_head->extern_head;
+    Machine_Code_Instructions *instructions = table_head->instructions_head;
+
+    while(label_list != NULL)
+    {
+        printf("Label Name: %s \n", label_list->label);
+        printf("Label address: %d \n", label_list->address);
+        printf("Label type: %s \n", label_list->type);
+        label_list = label_list->next;
+    }
+
+    while(instructions != NULL)
+    {
+        printf("Address: %d \n", instructions->add);
+        printf("Word: %d \n", instructions->word.word);
+        instructions = instructions->next;
+    }
+
+    while(entry_list != NULL)
+    {
+        printf("Entry Name: %s \n", entry_list->label);
+        printf("Entry adress: %d \n", entry_list->add_list->address);
+        entry_list = entry_list->next;
+    }
+
+    while(extern_list != NULL)
+    {
+        printf("Extern Name: %s \n", extern_list->label);
+        printf("Extern adress: %d \n", extern_list->add_list->address);
+        extern_list = extern_list->next;
+    }
+}
+
+/*
+char* clean_string(const char *line)
+{
+    int in_quotes = 0;
+    char *result = my_malloc(strlen(line) + 1);
+
+    char *src = (char*)line, *dst = result;
+
+    while (*src) {
+        if (*src == '"') {
+            in_quotes = !in_quotes;
+            *dst++ = *src++;
+        } else if (in_quotes || (!isspace((unsigned char)*src))) {
+            *dst++ = *src++;
+        } else {
+            src++;
+        }
+    }
+
+    *dst = '\0';
+    return result;
+}
+*/
+
+void add_label(Label_List **list, char *label_name, int address, char *type)
 {
     Label_List *new_label = my_malloc(sizeof(Label_List));
 
     label_name[strcspn(label_name, "\n\r\t ")] = 0;
     memset(new_label->label, '\0', MAX_LABEL_SIZE);
+    memset(new_label->type, '\0', MAX_LABEL_SIZE);
+
     strcpy(new_label->label, label_name);
+    strcpy(new_label->type, type);
 
     new_label->address = address;
     new_label->next = *list;
@@ -72,7 +136,8 @@ void add_command(Machine_Code_Command **list, int address, Word word, char label
     Machine_Code_Command *new_command = my_malloc(sizeof(Machine_Code_Command));
 
     memset(new_command->label, '\0', MAX_LABEL_SIZE);
-    strcpy(new_command->label, label);
+    if(label != NULL)
+        strcpy(new_command->label, label);
 
     new_command->add = address;
     new_command->binary_code = word;
@@ -202,6 +267,9 @@ int get_operand_value(int type, char *operand)
 int type_line_first_pass(char *line, Command *command ,int *length)
 {
     int i = 0;
+    if(line[0] == ':')
+        line++;
+
     if(strncmp(line, ".data", strlen(".data")) == 0)
     {
         *length = strlen(".data");
@@ -228,27 +296,15 @@ int type_line_first_pass(char *line, Command *command ,int *length)
         if(strncmp(line, instruction_names[i], strlen(instruction_names[i])) == 0)
         {
             *length = (int)strlen(instruction_names[i]);
-            command->name = instruction_names[i];
+
+            strcpy(command->name, instruction_names[i]);
             command->code = i;
             command->funct = instruction_functs[i];
+
             return INSTRUCTION;
         }
     }
     return NONE;
-}
-
-
-Label_List *find_label(Label_List *list, char *label_name)
-{
-    while(list != NULL)
-    {
-        if(strcmp(list->label, label_name) == 0)
-        {
-            return list;
-        }
-        list = list->next;
-    }
-    return NULL;
 }
 
 
@@ -374,12 +430,12 @@ int make_command(Machine_Code_Command **list, char *line, Command *command, int 
     return TRUE;
 }
 
-void first_passage(Assembler_Table **table_head, char *file_name)
+void first_passage(Assembler_Table **table_head, char *og_name, char *file_name)
 {
     char line[MAX_LINE_LENGTH], label[MAX_LABEL_SIZE];
     char *cleaned_line, *co_ptr;
     int line_count = 1;
-    int ic = 100, dc = 0;
+    int ic = 100, dc = 1;
     int line_type, length, is_label;
     int flag = TRUE, is_error = no_error, total_error = no_error;
     Command *command = my_malloc(sizeof(Command));
@@ -391,10 +447,11 @@ void first_passage(Assembler_Table **table_head, char *file_name)
         return;
     }
 
-    command->name = NULL;
+
     command->code = 0;
     command->funct = 0;
 
+    memset(command->name, '\0', MAX_LINE_LENGTH);
     memset(line, '\0', MAX_LINE_LENGTH);
     memset(label, '\0', MAX_LABEL_SIZE);
 
@@ -411,13 +468,14 @@ void first_passage(Assembler_Table **table_head, char *file_name)
 
             is_error = check_space_and_colon(line, label, line_count, FIRST_PASS);
             flag = flag && is_error == no_error;
-            is_error = check_label_name(label, line_count);
+            is_error = check_legal_name(label, line_count, FIRST_PASS);
             flag = flag && is_error == no_error;
             is_error = check_name_for_instruction(label, line_count, FIRST_PASS);
             flag = flag && is_error == no_error;
             is_error = check_name_for_register(label, line_count, FIRST_PASS);
             flag = flag && is_error == no_error;
         }
+
         line_type = type_line_first_pass(cleaned_line + strlen(label), command, &length);
 
         switch(line_type)
@@ -425,7 +483,7 @@ void first_passage(Assembler_Table **table_head, char *file_name)
             case DATA:
                 if(is_label)
                 {
-                    add_label(&(*table_head)->label_head, label, ic + dc - 1);
+                    add_label(&(*table_head)->label_head, label, ic + dc - 1, ".data");
                 }
                 is_error = check_data_line(cleaned_line, line_count, label);
                 flag = flag && is_error == no_error;
@@ -438,7 +496,7 @@ void first_passage(Assembler_Table **table_head, char *file_name)
             case STRING:
                 if(is_label)
                 {
-                    add_label(&(*table_head)->label_head, label, ic + dc - 1);
+                    add_label(&(*table_head)->label_head, label, ic + dc - 1, ".string");
                 }
                 if(flag)
                 {
@@ -449,7 +507,11 @@ void first_passage(Assembler_Table **table_head, char *file_name)
             case ENTRY:
                 if(is_label)
                 {
-                    add_label(&(*table_head)->label_head, label, ic + dc);
+                    printf("In line %d, label is definied in entry definitation", line_count);
+                }
+                else
+                {
+                    add_label(&(*table_head)->label_head, label, ic + dc, ".entry");
                 }
                 if(flag)
                 {
@@ -460,7 +522,11 @@ void first_passage(Assembler_Table **table_head, char *file_name)
             case EXTERN:
                 if(is_label)
                 {
-                    add_label(&(*table_head)->label_head, label, ic + dc);
+                    printf("In line %d, label is definied in extern definition", line_count);
+                }
+                else
+                {
+                    add_label(&(*table_head)->label_head, label, ic + dc,  ".extern");
                 }
                 if(flag)
                 {
@@ -471,7 +537,7 @@ void first_passage(Assembler_Table **table_head, char *file_name)
             case INSTRUCTION:
                 if(is_label)
                 {
-                    add_label(&(*table_head)->label_head, label, ic);
+                    add_label(&(*table_head)->label_head, label, ic, "code");
                 }
                 if(flag)
                 {
@@ -487,15 +553,11 @@ void first_passage(Assembler_Table **table_head, char *file_name)
         total_error = total_error && flag == no_error;
         line_count++;
         flag = TRUE;
+        memset(command->name, '\0', MAX_LINE_LENGTH);
         memset(line, '\0', MAX_LINE_LENGTH);
         memset(label, '\0', MAX_LABEL_SIZE);
     }
     free(command);
     fclose(fptr);
     fptr = NULL;
-
-    if(total_error)
-    {
-        /* second pass */
-    }
 }
