@@ -26,18 +26,24 @@ int check_space_and_colon(char *line, char *name, int count, int stage)
         printf("After label definition in line %d, a colon must follow. \n", count);
         return error;
     }
-    character = line[strlen(name+1)];
-    if(character != ' ')
+
+    if(stage == PRE_PROC)
     {
-        if(stage == PRE_PROC)
+        character = line[strlen("mcro")];
+        if(character != ' ')
         {
             printf("After macro definition in line %d, a space most follow. \n", count);
+            return error;
         }
-        else if(stage == FIRST_PASS)
+    }
+    else if(stage == FIRST_PASS)
+    {
+        character = line[strlen(name) + 1];
+        if(character != ' ')
         {
             printf("After label definition in line %d, a space most follow. \n", count);
+            return error;
         }
-        return error;
     }
     return no_error;
 }
@@ -125,12 +131,20 @@ int check_macro_line(char *line, int count, char *macro_name)
     return no_error;
 }
 
-int check_label_name(char *name, int count)
+int check_legal_name(char *name, int count, int stage)
 {
     if(!isalpha(*name))
     {
-        printf("Label name in line %d, is not a valid label name. \n", count);
-        return error;
+        if(stage == PRE_PROC)
+        {
+            printf("Macro name in line %d, is not a macro label name. \n", count);
+            return error;
+        }
+        else if(stage == FIRST_PASS)
+        {
+            printf("Label name in line %d, is not a valid label name. \n", count);
+            return error;
+        }
     }
     return no_error;
 }
@@ -151,13 +165,20 @@ int check_data_line(char *line, int count, char *label)
     int expecting_num = TRUE;
     int is_num = FALSE;
 
-    line += strlen(label);
+    if(label[0] != '\0')
+    {
+        line += strlen(label) + 1;
+    }
+
     if(strncmp(line, ".data", strlen(".data")) != 0)
     {
         printf("In data instruction at line %d, there is no .data instruction. \n", count);
         return error;
     }
-    while(*line != '\0')
+
+    line += strlen(".data");
+
+    while(*line != '\n' && *line != '\0')
     {
         if(expecting_num)
         {
