@@ -21,6 +21,9 @@ int main(int argc, char *argv[])
     {
         file_name = argv[i];
         file_with_as = edit_file_name(file_name, ".as");
+
+        printf("Executing file: %s\n", file_with_as);
+
         pre_assembler(&table, file_name, file_with_as);
     }
 
