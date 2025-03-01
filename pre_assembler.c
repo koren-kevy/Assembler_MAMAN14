@@ -114,6 +114,8 @@ void pre_assembler(Assembler_Table **table_head, char *file_name, char *file_wit
                 flag = flag && result == no_error;
                 result = check_macro_line(line, line_count, macro_name);
                 flag = flag && result == no_error;
+                result = check_legal_name(macro_name, line_count, PRE_PROC);
+                flag = flag && result == no_error;
                 result = check_name_for_instruction(macro_name, line_count, PRE_PROC) &&
                     check_name_for_register(macro_name, line_count, PRE_PROC);
                 flag = flag && result == no_error;
@@ -170,13 +172,13 @@ void pre_assembler(Assembler_Table **table_head, char *file_name, char *file_wit
 
     free(file_with_as);
     file_with_as = NULL;
-    fprintf(fptr_am, "%s", "\n");
+    /*fprintf(fptr_am, "%s", "\n");*/
 
     fclose(fptr_as);
     fclose(fptr_am);
 
     if(flag)
     {
-        first_passage(table_head, file_with_am);
+        first_passage(table_head, file_name, file_with_am);
     }
 }
