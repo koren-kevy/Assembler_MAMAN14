@@ -1,0 +1,39 @@
+#include "assembler_definitions.h"
+#include "error_handler.h"
+#include "pre_and_passages.h"
+#include "Utility.h"
+
+void add_adress(Address_List **list, int address)
+{
+    Address_List *new_address = my_malloc(sizeof(Address_List));
+
+    new_address->address = address;
+    new_address->next = *list;
+    *list = new_address;
+}
+
+Label_List *find_label(Label_List *list, char *label_name)
+{
+    while(list != NULL)
+    {
+        if(strcmp(list->label, label_name) == 0)
+        {
+            return list;
+        }
+        list = list->next;
+    }
+    return NULL;
+}
+
+Extern_List *find_extern(Extern_List *list, char *extern_name)
+{
+    while(list != NULL)
+    {
+        if(strcmp(list->label, extern_name) == 0)
+        {
+            return list;
+        }
+        list = list->next;
+    }
+    return NULL;
+}
