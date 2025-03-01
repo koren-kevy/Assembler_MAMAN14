@@ -25,9 +25,9 @@
 #define BITS_TO_MOVE_FOR_DEST_REGISTER 8
 #define BITS_TO_MOVE_FOR_FUNCT 3
 
-extern char *instruction_names[];
-extern int instruction_functs[];
-extern char *register_names[];
+extern char *instruction_names[TOTAL_INSTRUCTIONS];
+extern int instruction_functs[TOTAL_INSTRUCTIONS];
+extern char *register_names[TOTAL_REGISTERS];
 
 typedef enum
 {
@@ -104,7 +104,7 @@ typedef struct Macro
 
 typedef struct
 {
-    char *name;
+    char name[MAX_LINE_LENGTH];
     int code;
     int funct;
 } Command;
@@ -119,6 +119,7 @@ typedef struct Macro_List
 typedef struct Label_List
 {
     char label[MAX_LABEL_SIZE]; /* Label name */
+    char type[MAX_LABEL_SIZE];
     int address; /* Label address */
     struct Label_List *next; /* Pointer to the next label */
 } Label_List;
