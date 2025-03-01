@@ -6,6 +6,7 @@
 #define PRE_PROC 100 /* A value to tell a function at which stage are we. */
 #define FIRST_PASS 101
 
+/* Pre proc */
 enum
 {
     MACRO_DECLARATION,
@@ -25,6 +26,9 @@ int type_line(char *line, Macro_List *list);
 
 void pre_assembler(Assembler_Table **table_head, char *file_name, char *file_with_as);
 
+/* End of pre proc */
+
+/* First pass */
 
 enum
 {
@@ -36,7 +40,7 @@ enum
     NONE
 };
 
-void add_label(Label_List **list, char *label_name, int address);
+void add_label(Label_List **list, char *label_name, int address, char *type);
 
 void add_entry(Entry_List **list, char *line, int line_count);
 
@@ -69,6 +73,17 @@ void make_word_for_two_operand_command(Command *command, Machine_Code_Command **
 
 int make_command(Machine_Code_Command **list, char *line, Command *command, int *ic, int count);
 
-void first_passage(Assembler_Table **table_head, char *file_name);
+void first_passage(Assembler_Table **table_head, char *og_name, char *file_name);
+
+/* End of first pass */
+
+
+/* Second pass */
+
+Label_List *find_label(Label_List *list, char *label_name);
+
+Extern_List *find_extern(Extern_List *list, char *extern_name);
+
+/* End of second pass */
 
 #endif
