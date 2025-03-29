@@ -4,67 +4,6 @@
 #include "Utility.h"
 
 
-void print_assembler(Assembler_Table *table_head)
-{
-    Label_List *label_list = table_head->label_head;
-    Entry_List *entry_list = table_head->entry_head;
-    Extern_List *extern_list = table_head->extern_head;
-    Machine_Code_Instructions *instructions = table_head->instructions_head;
-
-    while(label_list != NULL)
-    {
-        printf("Label Name: %s \n", label_list->label);
-        printf("Label address: %d \n", label_list->address);
-        printf("Label type: %s \n", label_list->type);
-        label_list = label_list->next;
-    }
-
-    while(instructions != NULL)
-    {
-        printf("Address: %d \n", instructions->add);
-        printf("Word: %d \n", instructions->word.word);
-        instructions = instructions->next;
-    }
-
-    while(entry_list != NULL)
-    {
-        printf("Entry Name: %s \n", entry_list->label);
-        printf("Entry adress: %d \n", entry_list->add_list->address);
-        entry_list = entry_list->next;
-    }
-
-    while(extern_list != NULL)
-    {
-        printf("Extern Name: %s \n", extern_list->label);
-        printf("Extern adress: %d \n", extern_list->add_list->address);
-        extern_list = extern_list->next;
-    }
-}
-
-/*
-char* clean_string(const char *line)
-{
-    int in_quotes = 0;
-    char *result = my_malloc(strlen(line) + 1);
-
-    char *src = (char*)line, *dst = result;
-
-    while (*src) {
-        if (*src == '"') {
-            in_quotes = !in_quotes;
-            *dst++ = *src++;
-        } else if (in_quotes || (!isspace((unsigned char)*src))) {
-            *dst++ = *src++;
-        } else {
-            src++;
-        }
-    }
-
-    *dst = '\0';
-    return result;
-}
-*/
-
 void add_label(Label_List **list, char *label_name, int address, char *type)
 {
     Label_List *new_label = my_malloc(sizeof(Label_List));
@@ -82,14 +21,9 @@ void add_label(Label_List **list, char *label_name, int address, char *type)
 }
 
 
-void add_entry(Entry_List **list, char *line, int line_count)
+void add_entry(Entry_List **list, char *entry)
 {
     Entry_List *new_entry = my_malloc(sizeof(Entry_List));
-    char entry[MAX_LABEL_SIZE];
-
-    get_label(line, entry, '\n', line_count);
-    if(entry[0] == '\0')
-        return;
 
     memset(new_entry->label, '\0', MAX_LABEL_SIZE);
     strcpy(new_entry->label, entry);
@@ -100,14 +34,9 @@ void add_entry(Entry_List **list, char *line, int line_count)
 }
 
 
-void add_extern(Extern_List **list, char *line, int line_count)
+void add_extern(Extern_List **list, char *exter)
 {
     Extern_List *new_extern = my_malloc(sizeof(Extern_List));
-    char exter[MAX_LABEL_SIZE];
-
-    get_label(line, exter, '\n', line_count);
-    if(exter[0] == '\0')
-        return;
 
     memset(new_extern->label, '\0', MAX_LABEL_SIZE);
     strcpy(new_extern->label, exter);
@@ -118,9 +47,9 @@ void add_extern(Extern_List **list, char *line, int line_count)
 }
 
 
-void add_instruction(Machine_Code_Instructions **list, int address, Word word)
+void add_instruction(Instruction_List **list, int address, Word word)
 {
-    Machine_Code_Instructions *new_instruction = my_malloc(sizeof(Machine_Code_Instructions));
+    Instruction_List *new_instruction = my_malloc(sizeof(Instruction_List));
 
     new_instruction->word = word;
     new_instruction->add = address;
@@ -130,10 +59,10 @@ void add_instruction(Machine_Code_Instructions **list, int address, Word word)
 }
 
 
-void add_command(Machine_Code_Command **list, int address, Word word, char label[MAX_LABEL_SIZE],
+void add_command(Command_List **list, int address, Word word, char label[MAX_LABEL_SIZE],
     int type)
 {
-    Machine_Code_Command *new_command = my_malloc(sizeof(Machine_Code_Command));
+    Command_List *new_command = my_malloc(sizeof(Command_List));
 
     memset(new_command->label, '\0', MAX_LABEL_SIZE);
     if(label != NULL)
@@ -156,7 +85,7 @@ void get_label(char *line, char *label, char co ,int line_count)
     colon_ptr = strchr(line, co);
     if(colon_ptr == NULL)
     {
-        printf("No colon found in label definition at line %d \n", line_count);
+        printf("No colon found in label definition at line %d. \n", line_count);
         return;
     }
 
@@ -167,14 +96,18 @@ void get_label(char *line, char *label, char co ,int line_count)
 }
 
 
-int get_string(Machine_Code_Instructions **list, char *line, int skip, int *address)
+void get_string(Instruction_List **list, char *line, int line_count, int *address)
 {
     int i;
     Word word;
-    line += skip;
+    char *quotes = strstr(line, "\"");
+    if(quotes == NULL)
+    {
+        printf("String definiation at line %d, has no quotes. \n", line_count);
+        return;
+    }
 
-    if(line[0] != '"')
-        return error;
+    line = quotes + 1;
 
     for(i = 1; line[i] != '"' && line[i] != '\0'; i++)
     {
@@ -185,12 +118,10 @@ int get_string(Machine_Code_Instructions **list, char *line, int skip, int *addr
     word.word = 0;
     add_instruction(list, *address, word);
     (*address)++;
-
-    return no_error;
 }
 
 
-void get_data(Machine_Code_Instructions **list, char *line, int skip, int *address)
+void get_data(Instruction_List **list, char *line, int skip, int *address)
 {
     char *num;
     int int_num;
@@ -308,7 +239,7 @@ int type_line_first_pass(char *line, Command *command ,int *length)
 }
 
 
-void make_word_for_one_operand_command(Command *command, Machine_Code_Command **list, int *ic,
+void make_word_for_one_operand_command(Command *command, Command_List **list, int *ic,
     char *dest, int dest_type)
 {
     Word word;
@@ -321,32 +252,32 @@ void make_word_for_one_operand_command(Command *command, Machine_Code_Command **
     if(dest_type == REGISTER)
     {
         word.word |= get_operand_value(dest_type, dest) << BITS_TO_MOVE_FOR_DEST_REGISTER;
+        add_command(list, *ic, word, dest, dest_type);
+        (*ic)++;
     }
-
-    add_command(list, *ic, word, dest, dest_type);
-    (*ic)++;
-
-    if(dest_type == REGISTER)
+    else /* If its command or label. */
     {
-        word.word |= get_operand_value(dest_type, dest) << BITS_TO_MOVE_FOR_DEST_REGISTER;
+        word.word = SECOND_PASS;
+        add_command(list, *ic, word, dest, dest_type);
+        (*ic)++;
     }
-
-    add_command(list, *ic, word, dest, dest_type);
-    (*ic)++;
 }
 
 
-void make_word_for_two_operand_command(Command *command, Machine_Code_Command **list, int *ic,
+void make_word_for_two_operand_command(Command *command, Command_List **list, int *ic,
     char *source, int source_type, char *dest, int dest_type)
 {
-    Word word;
+    Word word, other_word;
     word.word = 0;
+    other_word.word = 0;
 
     word.word |= command->code << BITS_TO_MOVE_FOR_OPCODE;
 
     word.word |= source_type << BITS_TO_MOVE_FOR_SOURCE_TYPE;
     word.word |= dest_type << BITS_TO_MOVE_FOR_DEST_TYPE;
 
+    word.word |= command->code << BITS_TO_MOVE_FOR_FUNCT;
+
     if(source_type == REGISTER)
     {
         word.word |= get_operand_value(source_type, source) << BITS_TO_MOVE_FOR_SOURCE_REGISTER;
@@ -357,29 +288,42 @@ void make_word_for_two_operand_command(Command *command, Machine_Code_Command **
         word.word |= get_operand_value(dest_type, dest) << BITS_TO_MOVE_FOR_DEST_REGISTER;
     }
 
-    word.word |= command->funct << BITS_TO_MOVE_FOR_FUNCT;
+    /*word.word |= command->funct << BITS_TO_MOVE_FOR_FUNCT;*/
 
     add_command(list, *ic, word, source, source_type);
     (*ic)++;
 
-    if(source_type == REGISTER)
+    if(source_type != REGISTER)
     {
-        word.word |= get_operand_value(source_type, source) << BITS_TO_MOVE_FOR_SOURCE_REGISTER;
+        if(source_type == LABEL)
+        {
+            other_word.word = SECOND_PASS;
+        }
+        else
+        {
+            other_word.word = get_operand_value(source_type, source) << BITS_TO_MOVE_FOR_SOURCE_REGISTER;
+        }
+        add_command(list, *ic, other_word, source, source_type);
+        (*ic)++;
     }
-
-    add_command(list, *ic, word, source, source_type);
-    (*ic)++;
-
-    if(dest_type == REGISTER)
+    if(dest_type != REGISTER)
     {
-        word.word |= get_operand_value(dest_type, dest) << BITS_TO_MOVE_FOR_DEST_REGISTER;
-    }
+        other_word.word = 0;
 
-    add_command(list, *ic, word, dest, dest_type);
-    (*ic)++;
+        if(dest_type == LABEL)
+        {
+            other_word.word = SECOND_PASS;
+        }
+        else
+        {
+            other_word.word = get_operand_value(dest_type, dest) << BITS_TO_MOVE_FOR_DEST_REGISTER;
+        }
+        add_command(list, *ic, other_word, dest, dest_type);
+        (*ic)++;
+    }
 }
 
-int make_command(Machine_Code_Command **list, char *line, Command *command, int *ic, int count)
+int make_command(Command_List **list, char *line, Command *command, int *ic, int count)
 {
     int source_type = NO_TYPE, dest_type = NO_TYPE;
     char source[MAX_LABEL_SIZE], dest[MAX_LABEL_SIZE];
@@ -443,7 +387,7 @@ void first_passage(Assembler_Table **table_head, char *og_name, char *file_name)
     FILE *fptr = fopen(file_name, "r");
     if(fptr == NULL)
     {
-        printf("Error opening file %s \n", file_name); /* error */
+        printf("Error opening file %s. \n", file_name); /* error */
         return;
     }
 
@@ -489,7 +433,7 @@ void first_passage(Assembler_Table **table_head, char *og_name, char *file_name)
                 flag = flag && is_error == no_error;
                 if(flag)
                 {
-                    get_data(&(*table_head)->instructions_head, cleaned_line, length, &dc);
+                    get_data(&(*table_head)->instruction_head, cleaned_line, length, &dc);
                 }
                 break;
 
@@ -500,37 +444,32 @@ void first_passage(Assembler_Table **table_head, char *og_name, char *file_name)
                 }
                 if(flag)
                 {
-                    get_string(&(*table_head)->instructions_head, cleaned_line, length, &dc);
+                    get_string(&(*table_head)->instruction_head, cleaned_line, line_count, &dc);
                 }
                 break;
 
             case ENTRY:
                 if(is_label)
                 {
-                    printf("In line %d, label is definied in entry definitation", line_count);
-                }
-                else
-                {
+                    sscanf(line + strlen(".entry") + 1, "%s", label);
                     add_label(&(*table_head)->label_head, label, ic + dc, ".entry");
                 }
                 if(flag)
                 {
-                    add_entry(&(*table_head)->entry_head, cleaned_line + length, line_count);
+                    sscanf(line + strlen(".entry") + 1, "%s", label);
+                    add_entry(&(*table_head)->entry_head, label);
                 }
                 break;
 
             case EXTERN:
                 if(is_label)
                 {
-                    printf("In line %d, label is definied in extern definition", line_count);
-                }
-                else
-                {
-                    add_label(&(*table_head)->label_head, label, ic + dc,  ".extern");
+                    printf("In line %d, label is definied in extern definition.", line_count);
                 }
                 if(flag)
                 {
-                    add_extern(&(*table_head)->extern_head, cleaned_line + length, line_count);
+                    sscanf(line + strlen(".extern") + 1, "%s", label);
+                    add_extern(&(*table_head)->extern_head, label);
                 }
                 break;
 
@@ -549,7 +488,6 @@ void first_passage(Assembler_Table **table_head, char *og_name, char *file_name)
             case NONE:
                 break;
         }
-
         total_error = total_error && flag == no_error;
         line_count++;
         flag = TRUE;
@@ -560,4 +498,13 @@ void first_passage(Assembler_Table **table_head, char *og_name, char *file_name)
     free(command);
     fclose(fptr);
     fptr = NULL;
+
+    reverse_list_label(&(*table_head)->label_head);
+    reverse_list_entry(&(*table_head)->entry_head);
+    reverse_list_extern(&(*table_head)->extern_head);
+    reverse_list_command(&(*table_head)->command_head);
+    reverse_list_instruction(&(*table_head)->instruction_head);
+
+
+    second_pass(table_head, og_name, ic, dc, total_error);
 }
