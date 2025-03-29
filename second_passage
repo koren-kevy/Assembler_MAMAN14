@@ -1,9 +1,9 @@
 #include "assembler_definitions.h"
-#include "error_handler.h"
 #include "pre_and_passages.h"
 #include "Utility.h"
 
-void add_adress(Address_List **list, int address)
+
+void add_address(Address_List **list, int address)
 {
     Address_List *new_address = my_malloc(sizeof(Address_List));
 
@@ -25,6 +25,19 @@ Label_List *find_label(Label_List *list, char *label_name)
     return NULL;
 }
 
+Entry_List *find_entry(Entry_List *list, char *entry_name)
+{
+    while(list != NULL)
+    {
+        if(strcmp(list->label, entry_name) == 0)
+        {
+            return list;
+        }
+        list = list->next;
+    }
+    return NULL;
+}
+
 Extern_List *find_extern(Extern_List *list, char *extern_name)
 {
     while(list != NULL)
@@ -36,4 +49,70 @@ Extern_List *find_extern(Extern_List *list, char *extern_name)
         list = list->next;
     }
     return NULL;
+}
+
+
+void second_pass(Assembler_Table **table_head, char *file_name, int ic, int dc, int total_error)
+{
+    Label_List *label_list = (*table_head)->label_head;
+    Entry_List *entry_list = (*table_head)->entry_head;
+    Extern_List *extern_list = (*table_head)->extern_head;
+    Command_List *command_list = (*table_head)->command_head;
+
+
+    while(command_list != NULL)
+    {
+        if(command_list->binary_code.word == SECOND_PASS)
+        {
+            label_list = find_label(label_list, command_list->label);
+            if(label_list != NULL)
+            {
+                command_list->binary_code.word = R;
+                command_list->binary_code.word |= label_list->address << 3;
+            }
+
+            extern_list = find_extern(extern_list, command_list->label);
+            if(extern_list != NULL)
+            {
+                command_list->binary_code.word = E;
+                add_address(&extern_list->add_list, command_list->add);
+            }
+        }
+
+        label_list = (*table_head)->label_head;
+        entry_list = (*table_head)->entry_head;
+        extern_list = (*table_head)->extern_head;
+        command_list = command_list->next;
+    }
+
+    while(label_list != NULL)
+    {
+        entry_list = find_entry(entry_list, label_list->label);
+        if(entry_list != NULL)
+        {
+            add_address(&entry_list->add_list, label_list->address);
+        }
+
+        entry_list = (*table_head)->entry_head;
+        label_list = label_list->next;
+    }
+
+    if(entry_list != NULL)
+    {
+        reverse_list_address(&(*table_head)->entry_head->add_list);
+    }
+
+    if(extern_list != NULL)
+    {
+        reverse_list_address(&(*table_head)->extern_head->add_list);
+    }
+
+    if(total_error)
+    {
+        print_ob_file(table_head, edit_file_name(file_name, ".ob"), ic, dc);
+
+        print_ent_file((*table_head)->entry_head, edit_file_name(file_name, ".ent"));
+
+        print_ext_file((*table_head)->extern_head, edit_file_name(file_name, ".ext"));
+    }
 }
