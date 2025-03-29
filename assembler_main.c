@@ -8,26 +8,26 @@ int main(int argc, char *argv[])
     char *file_name, *file_with_as;
     Assembler_Table *table = NULL;
 
-    table = my_malloc(sizeof(Assembler_Table));
-
-    table->command_head = NULL;
-    table->entry_head = NULL;
-    table->extern_head = NULL;
-    table->instructions_head = NULL;
-    table->label_head = NULL;
-    table->macro_head = NULL;
-
     for(i = 1; i < argc; i++)
     {
+        table = my_malloc(sizeof(Assembler_Table));
+
+        table->command_head = NULL;
+        table->entry_head = NULL;
+        table->extern_head = NULL;
+        table->instruction_head = NULL;
+        table->label_head = NULL;
+        table->macro_head = NULL;
+
         file_name = argv[i];
         file_with_as = edit_file_name(file_name, ".as");
 
         printf("Executing file: %s\n", file_with_as);
 
         pre_assembler(&table, file_name, file_with_as);
-    }
 
-    free(table);
+        free_table(table);
+    }
 
     return 0;
 }
