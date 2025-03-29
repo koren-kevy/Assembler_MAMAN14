@@ -25,6 +25,10 @@
 #define BITS_TO_MOVE_FOR_DEST_REGISTER 8
 #define BITS_TO_MOVE_FOR_FUNCT 3
 
+#define E 1
+#define R 2
+#define A 4
+
 extern char *instruction_names[TOTAL_INSTRUCTIONS];
 extern int instruction_functs[TOTAL_INSTRUCTIONS];
 extern char *register_names[TOTAL_REGISTERS];
@@ -109,6 +113,12 @@ typedef struct
     int funct;
 } Command;
 
+/* A list to cast to in order to reverse the list. */
+typedef struct Node
+{
+    struct Node *next;
+} Node;
+
 typedef struct Macro_List
 {
     char macro_name[MAX_LINE_LENGTH]; /* Name of the macro */
@@ -144,21 +154,20 @@ typedef struct Extern_List
     struct Extern_List *next;
 } Extern_List;
 
-typedef struct Machine_Code_Command
+typedef struct Command_List
 {
     int add;
     Word binary_code;
     char label[MAX_LABEL_SIZE];
     int type;
-    struct Machine_Code_Command *next;
-} Machine_Code_Command;
-
-typedef struct Machine_Code_Instructions
+    struct Command_List *next;
+} Command_List;
+typedef struct Instruction_List
 {
     int add;
     Word word;
-    struct Machine_Code_Instructions *next;
-} Machine_Code_Instructions;
+    struct Instruction_List *next;
+} Instruction_List;
 
 typedef struct Assembler_Table
 {
@@ -166,8 +175,8 @@ typedef struct Assembler_Table
     Label_List *label_head;
     Entry_List *entry_head;
     Extern_List *extern_head;
-    Machine_Code_Command *command_head;
-    Machine_Code_Instructions *instructions_head;
+    Command_List *command_head;
+    Instruction_List *instruction_head;
 } Assembler_Table;
 
 #endif
