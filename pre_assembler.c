@@ -91,14 +91,14 @@ void pre_assembler(Assembler_Table **table_head, char *file_name, char *file_wit
     fptr_as = fopen(file_with_as, "r");
     if(fptr_as == NULL)
     {
-        printf("Error opening file %s \n", file_with_as); /* error */
+        printf("Error opening file %s. \n", file_with_as); /* error */
         return;
     }
 
     fptr_am = fopen(file_with_am, "w");
     if(fptr_am == NULL)
     {
-        printf("Error opening file %s \n", file_with_am); /* error */
+        printf("Error opening file %s. \n", file_with_am); /* error */
         return;
     }
 
@@ -172,7 +172,6 @@ void pre_assembler(Assembler_Table **table_head, char *file_name, char *file_wit
 
     free(file_with_as);
     file_with_as = NULL;
-    /*fprintf(fptr_am, "%s", "\n");*/
 
     fclose(fptr_as);
     fclose(fptr_am);
@@ -180,5 +179,12 @@ void pre_assembler(Assembler_Table **table_head, char *file_name, char *file_wit
     if(flag)
     {
         first_passage(table_head, file_name, file_with_am);
+    }
+    else
+    {
+        if(remove(file_with_am) != 0)
+        {
+            exit(1);
+        }
     }
 }
