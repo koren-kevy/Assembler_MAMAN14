@@ -152,7 +152,7 @@ int check_legal_name(char *name, int count, int stage)
 int check_for_same_label(Label_List *list, char *name, int count)
 {
     Label_List *result = find_label(list, name);
-    if(result == NULL)
+    if(result == NULL || strcmp(result->type, ".entry") == 0)
     {
         return no_error;
     }
