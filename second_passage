@@ -3,19 +3,30 @@
 #include "Utility.h"
 
 
+/**
+ * This function adds an address into the head of the address list.
+ */
 void add_address(Address_List **list, int address)
 {
     Address_List *new_address = my_malloc(sizeof(Address_List));
 
+    /* Copy parameters into the new node. */
     new_address->address = address;
+
+    /* Add to the head of the list. */
     new_address->next = *list;
     *list = new_address;
 }
 
+
+/**
+ * This function checks if a label is already in the label list.
+ */
 Label_List *find_label(Label_List *list, char *label_name)
 {
     while(list != NULL)
     {
+        /* Search for the same name. */
         if(strcmp(list->label, label_name) == 0)
         {
             return list;
@@ -25,10 +36,15 @@ Label_List *find_label(Label_List *list, char *label_name)
     return NULL;
 }
 
+
+/**
+ * This function checks if an entry label is already in the entry list.
+ */
 Entry_List *find_entry(Entry_List *list, char *entry_name)
 {
     while(list != NULL)
     {
+        /* Search for the same name. */
         if(strcmp(list->label, entry_name) == 0)
         {
             return list;
@@ -38,10 +54,15 @@ Entry_List *find_entry(Entry_List *list, char *entry_name)
     return NULL;
 }
 
+
+/**
+ * This function check if an extern label is already in the extern list.
+ */
 Extern_List *find_extern(Extern_List *list, char *extern_name)
 {
     while(list != NULL)
     {
+        /* Search for the same name. */
         if(strcmp(list->label, extern_name) == 0)
         {
             return list;
@@ -52,67 +73,85 @@ Extern_List *find_extern(Extern_List *list, char *extern_name)
 }
 
 
-void second_pass(Assembler_Table **table_head, char *file_name, int ic, int dc, int total_error)
+/**
+ * This function handles the assembly words that were marked for the second pass.
+ * Those words are label and commands, which are handled in this function.
+ * This function also calls to functions to create the output files if there was no error.
+ */
+void second_pass(Assembly_Content **content, char *file_name, int ic, int dc, int total_error)
 {
-    Label_List *label_list = (*table_head)->label_head;
-    Entry_List *entry_list = (*table_head)->entry_head;
-    Extern_List *extern_list = (*table_head)->extern_head;
-    Command_List *command_list = (*table_head)->command_head;
+    /* Initialize the lists. */
+    Label_List *label_list = (*content)->label_head;
+    Entry_List *entry_list = (*content)->entry_head;
+    Extern_List *extern_list = (*content)->extern_head;
+    Command_List *command_list = (*content)->command_head;
 
 
     while(command_list != NULL)
     {
+        /* If the command was marked for the second pass we will handle it. */
         if(command_list->binary_code.word == SECOND_PASS)
         {
+            /* We look for the label in the label list. */
             label_list = find_label(label_list, command_list->label);
             if(label_list != NULL)
             {
+                /* We update the commands word accordingly. */
                 command_list->binary_code.word = R;
                 command_list->binary_code.word |= label_list->address << 3;
             }
 
+            /* We look for the extern in the extern list. */
             extern_list = find_extern(extern_list, command_list->label);
             if(extern_list != NULL)
             {
+                /* We update the commands word accordingly and adding the address. */
                 command_list->binary_code.word = E;
                 add_address(&extern_list->add_list, command_list->add);
             }
         }
 
-        label_list = (*table_head)->label_head;
-        entry_list = (*table_head)->entry_head;
-        extern_list = (*table_head)->extern_head;
+        /* Initialize the lists. */
+        label_list = (*content)->label_head;
+        entry_list = (*content)->entry_head;
+        extern_list = (*content)->extern_head;
         command_list = command_list->next;
     }
 
     while(label_list != NULL)
     {
+        /* We look for the entry in the entry list. */
         entry_list = find_entry(entry_list, label_list->label);
         if(entry_list != NULL)
         {
+            /* We add its address to the list. */
             add_address(&entry_list->add_list, label_list->address);
         }
 
-        entry_list = (*table_head)->entry_head;
+        /* Initialize the lists. */
+        entry_list = (*content)->entry_head;
         label_list = label_list->next;
     }
 
+    /* If entry list isn't empty we reverse its address list. */
     if(entry_list != NULL)
     {
-        reverse_list_address(&(*table_head)->entry_head->add_list);
+        reverse_list_address(&(*content)->entry_head->add_list);
     }
 
+    /* If extern list isn't empty we reverse its address list. */
     if(extern_list != NULL)
     {
-        reverse_list_address(&(*table_head)->extern_head->add_list);
+        reverse_list_address(&(*content)->extern_head->add_list);
     }
 
+    /* If the program found no errors we output files. */
     if(total_error)
     {
-        print_ob_file(table_head, edit_file_name(file_name, ".ob"), ic, dc);
+        print_ob_file(content, edit_file_name(file_name, ".ob"), ic, dc);
 
-        print_ent_file((*table_head)->entry_head, edit_file_name(file_name, ".ent"));
+        print_ent_file((*content)->entry_head, edit_file_name(file_name, ".ent"));
 
-        print_ext_file((*table_head)->extern_head, edit_file_name(file_name, ".ext"));
+        print_ext_file((*content)->extern_head, edit_file_name(file_name, ".ext"));
     }
 }
