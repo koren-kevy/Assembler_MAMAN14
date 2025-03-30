@@ -9,7 +9,10 @@
 #define SECOND_PASS 102
 
 
-/* Pre proc declarations */
+/** Pre proc declarations */
+
+
+/* A few values to indicate what is happening in the current line. */
 enum
 {
     MACRO_DECLARATION,
@@ -67,18 +70,22 @@ int type_line(char *line, Macro_List *list);
 /**
  * This function takes a file of assembly code, and expands the macros in a new file.
  * Then sends the new file into the next step of the assembler.
+ * Meanwhile, the function also calls for error checking functions.
  *
- * @param table_head A pointer to an assembler table.
+ * @param content_head A pointer to the assembley content.
  * @param file_name The name of the file to be used later.
  * @param file_with_as The name of the file to execute.
  */
-void pre_assembler(Assembler_Table **table_head, char *file_name, char *file_with_as);
+void pre_assembler(Assembly_Content **content_head, char *file_name, char *file_with_as);
 
-/* End of pre proc declarations */
+/** End of pre proc declarations */
 
 
-/* First pass declarations */
 
+/** First pass declarations */
+
+
+/* A few values to indicate the labels type, or no label. */
 enum
 {
     DATA,
@@ -209,6 +216,10 @@ int type_line_first_pass(char *line, Command *command, int *length);
 
 
 /**
+ * This function creates a word to represent an assembly instruction or command,
+ * and adds the command into the command list. A word that should be handled in the
+ * second pass, is marked with a second pass symbol.
+ * This function creates a word only for a one operand command.
  *
  * @param command A command to analyze.
  * @param list A pointer to a command list.
@@ -219,28 +230,109 @@ int type_line_first_pass(char *line, Command *command, int *length);
 void make_word_for_one_operand_command(Command *command, Command_List **list, int *ic,
                                        char *dest, int dest_type);
 
+
+/**
+ * This function creates a word to represent an assembly instruction or command,
+ * and adds the command into the command list. A word that should be handled in the
+ * second pass, is marked with a second pass symbol.
+ * This function creates a word only for a two operand command.
+ *
+ * @param command A command to analyze.
+ * @param list A pointer to a command list.
+ * @param ic The value of ic.
+ * @param source The source operand.
+ * @param source_type The type of the source operand.
+ * @param dest The destination operand.
+ * @param dest_type The type of the destination operand.
+ */
 void make_word_for_two_operand_command(Command *command, Command_List **list, int *ic,
-    char *source, int source_type, char *dest, int dest_type);
-
-int make_command(Command_List **list, char *line, Command *command, int *ic, int count);
-
-void first_passage(Assembler_Table **table_head, char *og_name, char *file_name);
-
-/* End of first pass */
+                                       char *source, int source_type, char *dest, int dest_type);
 
 
-/* Second pass */
+/**
+ * This function generates a word representing assembly code using two
+ * functions to assist. The function detects the instruction and creates the word accordingly.
+ * Words that are created in the second pass are not handled.
+ *
+ * @param list A pointer to the command list.
+ * @param line The line of assembly code to extract from.
+ * @param command The command to analyze.
+ * @param ic The value of ic.
+ * @param count The number of the current assembly line.
+ */
+void make_command(Command_List **list, char *line, Command *command, int *ic, int count);
 
+
+/**
+ * This function handles an assembly file, by adding labels,
+ * instructions, entry/extern commands or data/string commands to the according list.
+ * Meanwhile, the function also calls for error checking functions.
+ *
+ * @param content_head A pointer to the assembly content.
+ * @param og_name The name of the original file to move on to the second pass.
+ * @param file_name The name of the file to read from.
+ */
+void first_passage(Assembly_Content **content_head, char *og_name, char *file_name);
+
+/** End of first pass declarations */
+
+
+
+/** Second pass declarations */
+
+/**
+ * This function adds an address into the head of the address list.
+ *
+ * @param list A pointer to the address list.
+ * @param address The address to add to the list.
+ */
 void add_address(Address_List **list, int address);
 
+
+/**
+ * This function checks if a label is already in the label list.
+ *
+ * @param list The label list to check in.
+ * @param label_name The name of the label name to look for.
+ * @return NULL if the label isn't in the list, the node otherwise.
+ */
 Label_List *find_label(Label_List *list, char *label_name);
 
+
+/**
+ * This function checks if an entry label is already in the entry list.
+ *
+ * @param list The entry list to check in.
+ * @param entry_name The name of the entry to look for.
+ * @return NULL if the entry isn't in the list, the node otherwise.
+ */
 Entry_List *find_entry(Entry_List *list, char *entry_name);
 
+
+/**
+ * This function check if an extern label is already in the extern list.
+ *
+ * @param list The extern list to check in.
+ * @param extern_name The name of the extern to look for.
+ * @return NULL if the extern isn't in the list, the node otherwise.
+ */
 Extern_List *find_extern(Extern_List *list, char *extern_name);
 
-void second_pass(Assembler_Table **table, char *filename, int ic, int dc, int total_error);
 
-/* End of second pass */
+/**
+ * This function handles the assembly words that were marked for the second pass.
+ * Those words are label and commands, which are handled in this function.
+ * This function also calls to functions to create the output files if there was no error.
+ *
+ * @param content A pointer to the assembly content.
+ * @param filename The name of the files that should be created.
+ * @param ic The value of ic.
+ * @param dc The value of dc.
+ * @param total_error A value that tells if to output files or not.
+ */
+void second_pass(Assembly_Content **content, char *filename, int ic, int dc, int total_error);
+
+
+/** End of second pass declarations. */
 
 #endif
